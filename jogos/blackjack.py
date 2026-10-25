@@ -222,24 +222,23 @@ def blackjack():
 
         return False
 
-    def mostrar_jogadores(pessoas):
-        """Exibe na tela o status de todos os jogadores ativos na mesa."""
+    def mostrar_mesa(jogadores_temp, dealer_temp):
+        """Exibe na tela o status atual da mesa. (Dealer - Jogadores)"""
         print("Mesa:")
-        for j in pessoas:
-            print(f" - {j}")
-
-    def mostrar_dealer(dealer_temp):
-        """Exibe o status atual visível do dealer."""
         print(f" - {dealer_temp}")
+        for jogador_temp in jogadores_temp:
+            print(f" - {jogador_temp}")
 
     def nova_rodada(jogadores_t, dealer_temp):
-        """Limpa o estado de todos os participantes e retorna um novo baralho embaralhado."""
-        for j in jogadores_t:
+        """Cria uma lista apenas com os jogadores ativos (ingame == True), limpa o estado de todos os jogadores ativos e retorna a lista e um novo baralho embaralhado."""
+        jogadores_temp = [jogador_t for jogador_t in jogadores_t if jogador_t.ingame]
+
+        for j in jogadores_temp:
             j.reset()
 
         dealer_temp.reset()
 
-        return embaralhar(baralho)
+        return jogadores_temp, embaralhar(baralho)
 
     def verificacao_final(jogador_temp, dealer_temp):
         """
@@ -254,25 +253,25 @@ def blackjack():
         dealer_temp.nblackjack = blackjack_natural(dealer_temp)
 
         if jogador_temp.nblackjack and not dealer_temp.nblackjack:
-            pagamento = int(jogador_temp.aposta * 2.5)
+            pagamento = int(jogador_temp.aposta * 3)
             jogador_temp.fichas += pagamento
             jogador_temp.aposta = 0
-            print(f"O jogador {jogador_temp.nome} teve um Blackjack natural e recebe {pagamento}")
+            print(f"O(A) jogador(a) {jogador_temp.nome} teve um Blackjack natural e recebe {pagamento}")
 
         elif dealer_temp.estourou or jogador_temp.pontos > dealer_temp.pontos:
             pagamento = jogador_temp.aposta * 2
             jogador_temp.fichas += pagamento
             jogador_temp.aposta = 0
-            print(f"O dealer estorou ou o jogador {jogador_temp.nome} teve mais pontos que o dealer recebendo {pagamento}")
+            print(f"O dealer estorou ou o(a) jogador(a) {jogador_temp.nome} teve mais pontos que o dealer, recebendo {pagamento}")
 
         elif jogador_temp.pontos == dealer_temp.pontos:
             jogador_temp.fichas += jogador_temp.aposta
             jogador_temp.aposta = 0
-            print(f"O jogador {jogador_temp.nome} empatou com o dealer recebendo de volta o que apostou")
+            print(f"O(A) jogador(a) {jogador_temp.nome} empatou com o dealer recebendo de volta o que apôstou")
 
         else:
             jogador_temp.aposta = 0
-            print(f"O jogador {jogador_temp.nome} perdeu para o dealer, perdendo sua aposta")
+            print(f"O(A) jogador(a) {jogador_temp.nome} perdeu para o dealer, perdendo sua apôsta")
 
     # Inicialização básica do baralho padrão e do dealer da mesa
     baralho = baralho_map()
@@ -307,16 +306,15 @@ def blackjack():
 
             limpar_terminal()
 
-            mostrar_jogadores(jogadores)
-            mostrar_dealer(dealer)
+            mostrar_mesa(jogadores, dealer)
             input('\nPressione ENTER para continuar...')
 
             # Alerta visual para quem obteve Blackjack natural
             for jogador in jogadores:
                 if jogador.nblackjack:
                     limpar_terminal()
-                    print(f"\033[32mParabens ao jogador: {jogador.nome} por conseguir um Blackjack natural!!\033[m")
-                    print("\033[33mVocê não ira jogar essa rodada, porem so prederá se o Dealer tambem conseguir um Blackjack natural\033[m")
+                    print(f"\033[32mParabens ao jogador(a): {jogador.nome} por conseguir um blackjack natural!!\033[m")
+                    print("\033[33mVocê não irá jogar essa rodada, porem só prederá se o Dealer tambem conseguir um blackjack natural\033[m")
                     input("Pressione ENTER para continuar...")
 
             # Etapa 3: Turno de escolhas e ações de cada jogador
@@ -365,23 +363,29 @@ def blackjack():
                                 input("Pressione ENTER para continuar...")
                                 break
                         case 2:  # Dobrar aposta (Double Down)
-                            if jogador.fichas >= jogador.aposta:
-                                double(jogador)
-                                if jogador.estourou:
-                                    limpar_terminal()
-                                    print(f"Jogador: {jogador.nome} estourou. \nMão: {', '.join(jogador.mao.keys())}. Valendo: {jogador.pontos}.")
-                                    print("Ele está fora da rodada, perdendo sua aposta")
-                                    input("Pressione ENTER para continuar...")
-                                    break
+                            if len(jogador.mao) > 2:
+                                limpar_terminal()
+                                print("\033[31mSó se pode dobrar na primeira jogada\033[m")
+                                sleep(1)
+                            else:
+                                if jogador.fichas >= jogador.aposta:
+                                    double(jogador)
+                                    if jogador.estourou:
+                                        limpar_terminal()
+                                        print(f"Jogador: {jogador.nome} estourou. \nMão: {', '.join(jogador.mao.keys())}. Valendo: {jogador.pontos}.")
+                                        print("Ele está fora da rodada, perdendo sua aposta")
+                                        input("Pressione ENTER para continuar...")
+                                        break
+                                    else:
+                                        limpar_terminal()
+                                        print("Saldo da rodada:")
+                                        print(f" - {jogador}")
+                                        input("Pressione ENTER para continuar...")
+                                        break
                                 else:
                                     limpar_terminal()
-                                    print("Saldo da rodada:")
-                                    print(f" - {jogador}")
-                                    input("Pressione ENTER para continuar...")
-                                    break
-                            else:
-                                print("\n\033[31mVocê não tem fichas suficientes para dobrar!\033[m")
-                                sleep(1)
+                                    print("\n\033[31mVocê não tem fichas suficientes para dobrar!\033[m")
+                                    sleep(1)
                         case 3:  # Parar (Stand)
                             limpar_terminal()
                             print("Passando para o proximo jogador")
@@ -389,8 +393,7 @@ def blackjack():
                             break
                         case 4:  # Mostrar Mesa
                             limpar_terminal()
-                            mostrar_jogadores(jogadores)
-                            mostrar_dealer(dealer)
+                            mostrar_mesa(jogadores, dealer)
                             input('\nPressione ENTER para continuar...')
 
             limpar_terminal()
@@ -403,8 +406,8 @@ def blackjack():
             limpar_terminal()
 
             print("O dealer revela sua carta oculta:")
-            mostrar_dealer(dealer)
-            input("Pressione ENTER untuk continuar..." if False else "Pressione ENTER para continuar...")
+            print(f" - {dealer}")
+            input("Pressione ENTER para continuar...")
 
             limpar_terminal()
 
@@ -412,14 +415,15 @@ def blackjack():
             if dealer.pontos < 17:
                 print("O dealer compra até ficar com um mínimo de 17 pontos")
                 dealer.jogar_dealer()
-                mostrar_dealer(dealer)
+                print(f" - {dealer}")
                 input("Pressione ENTER para continuar para a verificação final...")
 
                 limpar_terminal()
 
             # Etapa 5: Verificação final de resultados para cada jogador
             for jogador in jogadores:
-                if jogador.estourou:
+                if jogador.estourou and jogador.ingame:
+                    print(f"O(A) jogador(a) {jogador.nome} estorou, perdendo sua apôsta")
                     continue
                 verificacao_final(jogador, dealer)
 
@@ -436,33 +440,37 @@ def blackjack():
 
             # Condições de encerramento da partida inteira.
             if len(jogadores_ativos) == 0:
-                print("\n" + "=" * 50)
-                print("\033[31m FIM DE JOGO! Suas fichas acabaram e a banca levou tudo!\033[m")
-                print("=" * 50)
+                mostrar_mesa(jogadores, dealer)
+                print("\n" + "=" * 60)
+                print("\033[31m FIM DE JOGO! Suas fichas acabaram e a banca levou tudo!\033[m".center(60))
+                print("=" * 60)
                 input("\nPressione ENTER para continuar...")
                 break
 
             elif len(jogadores_ativos) == 1 and len(jogadores) > 1:
                 campeao = jogadores_ativos[0]
-                print("\n" + "=" * 50)
-                print(f"\033[32m FIM DE JOGO! O jogador {campeao.nome} resistiu até o fim e é o GRANDE VENCEDOR da mesa com {campeao.fichas} fichas!\033[m")
-                print("=" * 50)
+                mostrar_mesa(jogadores, dealer)
+                print("\n" + "=" * 110)
+                print(f"\033[32m FIM DE JOGO! O(a) jogador(a) {campeao.nome} resistiu até o fim e é o(a) GRANDE VENCEDOR(A) da mesa com {campeao.fichas} fichas!\033[m".center(110))
+                print("=" * 110)
                 input("Pressione ENTER para continuar...")
                 break
 
-            mostrar_jogadores(jogadores)
-            mostrar_dealer(dealer)
+            mostrar_mesa(jogadores, dealer)
 
             input("\nPressione ENTER para ir para a proxima rodada...")
 
-            # Prepara um novo baralho para a próxima rodada.
-            baralho_uso = nova_rodada(jogadores, dealer)
+            # Prepara um novo baralho e uma nova lista apenas com os jogadores no jogo (ingame == True) para a próxima rodada.
+            jogadores, baralho_uso = nova_rodada(jogadores, dealer)
 
         limpar_terminal()
 
         # Pergunta se deseja reiniciar o jogo por completo.
         if sair() == "N":
             break
+
+        # Prepara um novo baralho e uma nova lista apenas com os jogadores no jogo (ingame == True) para a próxima rodada.
+        jogadores, baralho_uso = nova_rodada(jogadores, dealer)
 
 if __name__ == "__main__":
     blackjack()
